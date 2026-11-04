@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Das Königreich der Zauberkaninchen</title>
+<style>
+:root{--bg:#fdf6ff;--card:#ffffff;--ink:#4a3f63;--mint:#c8f1de;--lilac:#e3d6fa;--rose:#ffd9e6;--sun:#fff3b8;--mute:#8a7fa3;--line:#e6dcf5;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#241f33;--card:#322b47;--ink:#f1eafc;--mint:#2f5a4a;--lilac:#4b3f73;--rose:#6b3a52;--sun:#6a5d2a;--mute:#b5a9d0;--line:#4a4166;color-scheme:dark}}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;font-family:"Nunito","Trebuchet MS",system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;background-image:radial-gradient(circle at 10% 10%,var(--rose) 0,transparent 30%),radial-gradient(circle at 90% 20%,var(--mint) 0,transparent 30%),radial-gradient(circle at 50% 100%,var(--lilac) 0,transparent 35%)}
+#app{max-width:760px;margin:0 auto;padding:16px}
+h1{font-size:2rem;margin:.2em 0;text-align:center}
+h3{margin:0 0 4px}
+.big{font-size:4rem;text-align:center}
+.card{background:var(--card);border-radius:22px;padding:16px;margin:14px 0;box-shadow:0 4px 14px rgba(120,90,170,.15);border:2px solid var(--line)}
+.card.lock{opacity:.6;filter:grayscale(.5)}
+p{margin:.3em 0;color:var(--mute)}
+button{font:inherit;font-weight:700;border:none;border-radius:16px;padding:10px 16px;margin:4px 4px 0 0;cursor:pointer;background:var(--lilac);color:var(--ink);transition:transform .1s}
+button:hover:not(:disabled){transform:scale(1.04)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.a{background:var(--mint)}.b{background:var(--rose)}.t{background:var(--sun)}
+.pri{background:var(--mint);font-size:1.2rem;padding:14px 24px}
+input{font:inherit;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:14px;padding:10px 14px;width:100%;max-width:260px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.code{font-family:monospace;font-size:1.3rem;background:var(--sun);padding:8px 14px;border-radius:12px;display:inline-block;letter-spacing:.08em;user-select:all}
+.err{color:#d6457b;font-weight:700}
+.track{position:relative;height:70px;background:var(--mint);border-radius:40px;margin:12px 0;overflow:hidden}
+.slot{position:absolute;top:22px;font-size:1.7rem;transform:translateX(-50%)}
+#bun{position:absolute;top:6px;font-size:2.4rem;transition:left .6s ease;transform:translateX(-50%)}
+#bun.hop{animation:hop .6s}
+@keyframes hop{50%{margin-top:-22px}}
+.q{font-size:3rem;text-align:center;margin:10px 0;font-weight:800}
+.tx{font-size:1.3rem;line-height:1.5;color:var(--ink);margin:10px 0}
+.fb{padding:12px;border-radius:14px;margin:10px 0;text-align:center;font-weight:700}
+.fb.ok{background:var(--mint)}.fb.no{background:var(--rose)}
+.stars{font-size:2.6rem;text-align:center}
+.sm{font-size:.9rem}
+.pdf{border-top:2px dashed var(--line);margin-top:10px;padding-top:6px}
+footer{max-width:760px;margin:10px auto 0;padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));text-align:center;font-size:.9rem;color:var(--mute)}
+footer a{color:var(--mute);margin:0 8px;text-underline-offset:3px}
+footer a:hover{color:var(--ink)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<footer><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutzerklärung</a></footer>
+<script>
+const W=[
+ {n:'Zauberwiese',r:'Zahlenraum bis 10',e:'🌼'},
+ {n:'Mondgarten',r:'bis 20 ohne Zehnerüberschreitung',e:'🌙'},
+ {n:'Regenbogenhügel',r:'bis 20 mit Zehnerüberschreitung',e:'🌈'},
+ {n:'Pilzwald',r:'bis 50 ohne Überträge',e:'🍄'},
+ {n:'Kristallhöhle',r:'bis 50 mit Überträgen',e:'💎'},
+ {n:'Königsschloss',r:'bis 100',e:'🏰'},
+ {n:'Geschichtenwald',r:'einfache Textaufgaben bis 20',e:'📖'}];
+const NW=W.length,KEYS=[];for(let w=1;w<=NW;w++)['A','B','C','T'].forEach(t=>KEYS.push(w+t));
+let S={},M={},scr='start',G=null,msg='';
+const st=k=>S[k]||0;
+const unlocked=w=>w==1||st((w-1)+'T')>0;
+const cOpen=w=>st(w+'A')>0&&st(w+'B')>0;
+const tOpen=w=>st(w+'C')>0;
+const stars=n=>'⭐'.repeat(n)+'☆'.repeat(3-n);
+const r=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const shuf=a=>{for(let i=a.length-1;i>0;i--){const j=r(0,i);[a[i],a[j]]=[a[j],a[i]]}return a};
+const NAMES=['Mia','Lotta','Flocke','Luna','Hanni','Emmi'];
+
+/* ---------- Aufgaben ---------- */
+function gen0(w,op){
+  const m=[10,20,20,50,50,100][w-1];
+  for(let t=0;t<3000;t++){
+    const a=r(1,m),b=r(1,m),add=op=='+';
+    if(add?a+b>m:b>a)continue;
+    const cross=add?(a%10+b%10>=10):(b%10>a%10);
+    if(w==2&&(cross||(add?a+b<=10:a<=10)))continue;
+    if(w==3&&(!cross||(!add&&(a<=10||b>9))||(add&&(a>9||b>9))))continue;
+    if(w==4&&(cross||(add?a+b<=20:a<=20)))continue;
+    if(w==5&&(!cross||(add?a+b<=20:a<=20)))continue;
+    if(w==6&&(add?a+b<=50:a<=50))continue;
+    return{a,b,op,res:add?a+b:a-b,w};
+  }
+  return{a:3,b:2,op,res:op=='+'?5:1,w};
+}
+const TP={'+':[
+ n=>`${n} hat {a} Karotten. Sie bekommt {b} dazu. Wie viele Karotten hat sie jetzt?`,
+ ()=>`Im Garten hüpfen {a} Kaninchen. Es kommen {b} dazu. Wie viele Kaninchen sind es jetzt?`,
+ n=>`${n} pflückt am Morgen {a} Blumen und am Abend {b} Blumen. Wie viele Blumen sind das zusammen?`,
+ ()=>`Im Korb liegen {a} rote und {b} gelbe Äpfel. Wie viele Äpfel sind es zusammen?`],
+'-':[
+ n=>`${n} hat {a} Karotten. Sie isst {b} Karotten auf. Wie viele Karotten bleiben übrig?`,
+ ()=>`Auf der Wiese sitzen {a} Kaninchen. {b} Kaninchen hüpfen weg. Wie viele sind noch da?`,
+ ()=>`Im Korb liegen {a} Äpfel. {b} Äpfel sind faul. Wie viele Äpfel sind noch gut?`,
+ n=>`${n} hat {a} Sterne. Sie verschenkt {b} Sterne an ihre Freundin. Wie viele Sterne hat sie noch?`]};
+function gen(w,op,tpl){
+  if(w<7)return gen0(w,op);
+  const g=gen0(r(1,3),op),k=tpl!==undefined?tpl:r(0,3);
+  return{a:g.a,b:g.b,op,res:g.res,w,tpl:k,txt:TP[op][k](NAMES[r(0,5)]).replace('{a}',g.a).replace('{b}',g.b)};
+}
+function tasks(w,op,n){const seen=new Set(),o=[];let g=0;while(o.length<n&&g++<500){const t=gen(w,op),k=t.a+op+t.b;if(!seen.has(k)){seen.add(k);o.push(t)}}return o}
+const mixed=(w,n)=>shuf([...tasks(w,'+',n/2),...tasks(w,'-',n/2)]);
+/* Fehler-Training: neue Aufgaben, die den Fehler ähnlich wieder aufgreifen (gleiche Zahl, gleiche Rechenart) */
+function near(t){
+  for(let i=0;i<600;i++){const c=gen(t.w,t.op,t.tpl);if((c.a!==t.a||c.b!==t.b)&&(c.b===t.b||c.a===t.a))return c}
+  return gen(t.w,t.op,t.tpl)}
+function practice(w){const bad=M[w]||[],q=[];bad.forEach(t=>{q.push(near(t),near(t))});
+  while(q.length<4)q.push(near(bad[q.length%bad.length]));return shuf(q).slice(0,8)}
+
+/* ---------- Speicher-Code ---------- */
+function chk(s){let c=0;for(let i=0;i<s.length;i++)c=(c+s.charCodeAt(i)*(i+7))%1296;return c.toString(36).toUpperCase().padStart(2,'0')}
+function encode(){let n=0n;KEYS.forEach((k,i)=>{n+=BigInt(st(k))<<BigInt(2*i)});const b=n.toString(36).toUpperCase().padStart(11,'0');return'KANI-'+b+'-'+chk(b)}
+function decode(c){
+  const m=/^KANI-([0-9A-Z]{11})-([0-9A-Z]{2})$/.exec(c.trim().toUpperCase());
+  if(!m||chk(m[1])!==m[2])return null;
+  let n=0n;for(const ch of m[1])n=n*36n+BigInt(parseInt(ch,36));
+  const o={};KEYS.forEach((k,i)=>{const v=Number((n>>BigInt(2*i))&3n);if(v)o[k]=v});return o;
+}
+
+/* ---------- Bildschirme ---------- */
+const $=s=>document.querySelector(s);
+function render(){$('#app').innerHTML={start,map,play:playView,result}[scr]();if(scr=='play'){const i=$('#ans');if(i)i.focus()}}
+function start(){return`<div class="big">🐰✨🥕</div><h1>Das Königreich der Zauberkaninchen</h1>
+<p style="text-align:center">Hüpfe mit Mia, Lotta und Flocke durch sieben Zauberwelten und sammle Sterne!</p>
+<div class="card" style="text-align:center"><button class="pri" onclick="S={};M={};scr='map';render()">🌟 Neues Abenteuer</button></div>
+<div class="card"><h3>📜 Weiterspielen mit Zauber-Code</h3><p>Gib deinen Code ein, zum Beispiel KANI-0000000A3F9-7Q</p>
+<div class="row"><input id="code" placeholder="KANI-…" autocapitalize="characters" onkeydown="if(event.key=='Enter')load()"><button class="a" onclick="load()">Laden</button></div>
+<p class="err">${msg}</p></div>`}
+function load(){const o=decode($('#code').value);if(!o){msg='Hmm, dieser Code passt nicht. Schau noch einmal genau hin! 🔍';render();return}msg='';S=o;M={};scr='map';render()}
+function map(){
+  let h=`<h1>🗺️ Zauberkarte</h1><p style="text-align:center">⭐ ${KEYS.reduce((s,k)=>s+st(k),0)} Sterne gesammelt</p>`;
+  W.forEach((x,i)=>{const n=i+1,u=unlocked(n);
+    h+=`<section class="card ${u?'':'lock'}"><h3>${x.e} Welt ${n}: ${x.n}</h3><p>${x.r}</p>`;
+    if(!u)h+=`<p>🔒 Bestehe zuerst die Karotten-Prüfung von Welt ${n-1}.</p>`;
+    else{const tx=n==7;
+      h+=`<div class="row"><button class="a" onclick="startGame(${n},'A')">${tx?'📖':'➕'} Runde 1 · ${tx?'Plus':'Plus'}<br>${stars(st(n+'A'))}</button>
+    <button class="b" onclick="startGame(${n},'B')">${tx?'📖':'➖'} Runde 2 · Minus<br>${stars(st(n+'B'))}</button>
+    <button class="a" ${cOpen(n)?'':'disabled'} onclick="startGame(${n},'C')">🔀 Runde 3 · Gemischt<br>${stars(st(n+'C'))}</button>
+    <button class="t" ${tOpen(n)?'':'disabled'} onclick="startGame(${n},'T')">🥕 Karotten-Prüfung<br>${stars(st(n+'T'))}</button></div>
+    ${!cOpen(n)?'<p class="sm">Runde 3 öffnet sich nach Runde 1 und 2. Die Prüfung öffnet sich nach Runde 3.</p>':!tOpen(n)?'<p class="sm">Die Prüfung öffnet sich, wenn du Runde 3 geschafft hast.</p>':''}
+    ${(M[n]&&M[n].length)?`<button class="b" onclick="startGame(${n},'P')">🔧 Fehler-Training (${M[n].length} ${M[n].length==1?'Fehler':'Fehler'} aus der Prüfung)</button>`:''}`}
+    h+='</section>'});
+  h+=`<div class="card"><h3>💾 Dein Zauber-Code</h3><p>Schreibe ihn auf, dann kannst du später weiterspielen.</p><span class="code">${encode()}</span><br><button onclick="copy()">📋 Kopieren</button><button onclick="if(confirm('Wirklich zur Startseite?'))go('start')">🏠 Zur Startseite</button></div>`;
+  return h}
+function go(s){scr=s;msg='';render()}
+function copy(){const c=encode();try{navigator.clipboard.writeText(c)}catch(e){}event.target.textContent='✅ Kopiert!'}
+
+/* ---------- Spiel ---------- */
+function startGame(w,t){
+  let q;
+  if(t=='A')q=tasks(w,'+',5);else if(t=='B')q=tasks(w,'-',5);
+  else if(t=='C')q=mixed(w,6);else if(t=='T')q=mixed(w,6);else q=practice(w);
+  G={w,t,q,i:0,ok:0,hist:[],wrong:[],fb:null,bun:['🐰','🐇'][r(0,1)]};scr='play';render()}
+const slotPos=(i,n)=>(i+.5)/n*100;
+const TITLE={A:'Runde 1',B:'Runde 2',C:'Runde 3',T:'Karotten-Prüfung',P:'Fehler-Training'};
+function playView(){
+  const g=G,n=g.q.length,q=g.q[g.i],x=W[g.w-1];let sl='';
+  for(let i=0;i<n;i++)sl+=`<span class="slot" id="s${i}" style="left:${slotPos(i,n)}%">${g.hist[i]===undefined?'🥕':g.hist[i]?'🌟':'💨'}</span>`;
+  const body=q.txt?`<p class="tx">${q.txt}</p><div class="q" style="font-size:1.6rem">Rechnung: ${q.a} ${q.op=='+'?'+':'−'} ${q.b}</div>`:`<div class="q">${q.a} ${q.op=='+'?'+':'−'} ${q.b} = ?</div>`;
+  return`<div class="row"><button onclick="go('map')">⬅️ Karte</button><b>${x.e} Welt ${g.w} · ${TITLE[g.t]}</b></div>
+  <div class="track">${sl}<span id="bun" style="left:${g.i==0?5:slotPos(g.i-1,n)}%">${g.bun}</span></div>
+  <div class="card" style="text-align:center"><p>Aufgabe ${g.i+1} von ${n}</p>${body}
+  <input id="ans" type="number" inputmode="numeric" placeholder="Deine Antwort" style="text-align:center" onkeydown="if(event.key=='Enter')G.fb?next():answer()">
+  <button class="a" id="chk" onclick="answer()">Prüfen ✔️</button><div id="fb"></div></div>`}
+const GOOD=['Super gehoppelt! 🥕','Zauberhaft richtig! ✨','Karotte gesammelt! 🌟','Du bist klasse! 💖','Wunderbar! 🎀'];
+function answer(){
+  const g=G;if(g.fb)return;const v=$('#ans').value;if(v==='')return;
+  const q=g.q[g.i],ok=+v===q.res;g.fb=1;g.hist[g.i]=ok;if(ok)g.ok++;else g.wrong.push(q);
+  const b=$('#bun');b.style.left=slotPos(g.i,g.q.length)+'%';if(ok)b.classList.add('hop');
+  $('#s'+g.i).textContent=ok?'🌟':'💨';$('#ans').disabled=true;$('#chk').style.display='none';
+  const last=g.i==g.q.length-1;
+  $('#fb').innerHTML=`<div class="fb ${ok?'ok':'no'}">${ok?GOOD[r(0,4)]:`Fast! ${q.a} ${q.op=='+'?'+':'−'} ${q.b} = ${q.res}. Beim nächsten Mal klappt es! 💪`}</div><button class="pri" id="nx" onclick="next()">${last?'Fertig 🎉':'Weiter ➡️'}</button>`;
+  $('#nx').focus()}
+function next(){G.fb=null;G.i++;if(G.i>=G.q.length)finish();else render()}
+function finish(){
+  const g=G,k=g.w+g.t,t=g.t;let s=0,pass;
+  if(t=='A'||t=='B'){pass=g.ok>=3;s=pass?g.ok-2:0}
+  else if(t=='C'){pass=g.ok>=4;s=pass?g.ok-3:0}
+  else if(t=='T'){pass=g.ok>=5;s=pass?(g.ok==6?3:2):0}
+  else{pass=g.wrong.length==0;s=0}
+  const wasC=cOpen(g.w),wasT=tOpen(g.w),wasU=st(k)>0;
+  if(t!='P'&&s>st(k))S[k]=s;
+  if(t=='T')M[g.w]=g.wrong.slice();
+  if(t=='P')M[g.w]=g.wrong.slice();
+  g.s=s;g.pass=pass;
+  g.newC=!wasC&&cOpen(g.w);g.newT=!wasT&&tOpen(g.w);
+  g.newWorld=t=='T'&&pass&&!wasU&&g.w<NW;g.won=t=='T'&&pass&&g.w==NW;
+  scr='result';render()}
+function result(){
+  const g=G,n=g.q.length,P=g.t=='P',T=g.t=='T';
+  const e=P?(g.pass?'🔧🐰🎉':'🔧🐰💕'):g.pass?(g.s==3?'🏆🐰🎉':'🐰🌟'):'🐰💕';
+  const t=P?(g.pass?'Alle Fehler sind weggezaubert! Das Training hat sich gelohnt.':'Gut geübt! Es sind noch ein paar Aufgaben übrig – versuche das Fehler-Training gleich nochmal.')
+   :g.pass?(g.s==3?'Fantastisch! Du hast alle Karotten gesammelt!':'Toll gemacht, du hast bestanden!')
+   :(T?'Noch nicht ganz – aber du bist schon so nah dran! Übe mit dem Fehler-Training und versuche es dann nochmal.':'Gut geübt! Mit etwas Mut klappt es beim nächsten Mal bestimmt.');
+  let ex='';
+  if(g.newC)ex+='<div class="fb ok">🔀 Runde 3 ist jetzt freigeschaltet!</div>';
+  if(g.newT)ex+='<div class="fb ok">🥕 Die Karotten-Prüfung ist jetzt freigeschaltet!</div>';
+  if(g.newWorld)ex+=`<div class="fb ok">🎊 Welt ${g.w+1} (${W[g.w].n}) ist freigeschaltet!</div>`;
+  if(g.won)ex+='<div class="fb ok">👑 Du hast alle Welten gemeistert – Königin der Zauberkaninchen!</div>';
+  const bad=M[g.w]&&M[g.w].length;
+  return`<div class="card" style="text-align:center"><div class="big">${e}</div><h1>${g.ok} von ${n} richtig</h1>${P?'':`<div class="stars">${stars(g.s)}</div>`}<p>${t}</p>${ex}
+  ${(T||P)&&bad?`<button class="b" onclick="startGame(${g.w},'P')">🔧 Fehler-Training starten</button>`:''}
+  <h3 style="margin-top:14px">💾 Dein Zauber-Code</h3><span class="code">${encode()}</span><p class="sm">Schreibe ihn auf, um später weiterzuspielen.</p>
+  ${P?'':`<button onclick="startGame(${g.w},'${g.t}')">🔁 Nochmal</button>`}<button class="pri" onclick="go('map')">🗺️ Zur Karte</button></div>`}
+render();
+</script>
+</body>
+</html>
